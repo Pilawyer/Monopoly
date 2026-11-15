@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f7a4f">
+<title>Hazine Bankası</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Düzen: tek sütun, altta sekme çubuğu; banka kartları banknot dokusunda, para akışı jeton animasyonuyla gösterilir. */
+:root{
+  --bg:#eaf1ec; --surface:#ffffff; --surface-2:#f1f6f2; --ink:#12261c; --muted:#5a7064; --line:#d3dfd7;
+  --accent:#0f7a4f; --accent-ink:#ffffff;
+  --good:#0f7a4f; --good-ink:#ffffff; --bad:#b83a2c; --bad-ink:#ffffff;
+  --coin:#e0a100; --coin-ink:#4a3500;
+  --font-display:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1512; --surface:#13221c; --surface-2:#1a2c25; --ink:#e4f0e9; --muted:#8aa597; --line:#25392f;
+    --accent:#3ecf8e; --accent-ink:#04261a; --good:#3ecf8e; --good-ink:#04261a; --bad:#ff8a7a; --bad-ink:#3a0b05;
+    --coin:#f2b705; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1512; --surface:#13221c; --surface-2:#1a2c25; --ink:#e4f0e9; --muted:#8aa597; --line:#25392f;
+  --accent:#3ecf8e; --accent-ink:#04261a; --good:#3ecf8e; --good-ink:#04261a; --bad:#ff8a7a; --bad-ink:#3a0b05;
+  --coin:#f2b705; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink); font:16px/1.45 var(--font-body);
+  min-height:100dvh; -webkit-tap-highlight-color:transparent;
+  padding-top:max(16px,env(safe-area-inset-top,0px));
+  padding-bottom:calc(92px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:480px;margin:0 auto;display:grid;gap:16px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+header h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.chip-mode{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.chip-mode i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip-mode.on i{background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
+.note{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--coin);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--muted)}
+
+section.panel{display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:14px}
+.label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface-2);border:1px solid var(--line);padding:4px;border-radius:16px}
+.seg button{border:0;background:transparent;border-radius:12px;min-height:48px;font-weight:600;font-size:16px}
+.seg button.dep.on{background:var(--good);color:var(--good-ink)}
+.seg button.wd.on{background:var(--bad);color:var(--bad-ink)}
+
+.amt{display:flex;align-items:baseline;gap:8px;border-bottom:2px solid var(--line);padding-bottom:6px}
+.amt:focus-within{border-color:var(--accent)}
+.amt span{font:800 28px var(--font-display);color:var(--muted)}
+.amt input{flex:1;min-width:0;border:0;background:transparent;font:800 48px/1.1 var(--font-display);font-variant-numeric:tabular-nums;padding:0;outline:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:9px 14px;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
+.chip:active{transform:scale(.96)}
+.chip.ghost{background:transparent;color:var(--muted)}
+.chip.ev{border-style:dashed}
+
+.btn{min-height:56px;border-radius:16px;border:0;font-weight:600;font-size:17px;padding:0 18px;background:var(--accent);color:var(--accent-ink);width:100%}
+.btn:active{transform:scale(.985)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.dep{background:var(--good);color:var(--good-ink)}
+.btn.wd{background:var(--bad);color:var(--bad-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.sm{min-height:44px;font-size:15px}
+.field{display:grid;gap:6px}
+.field input{border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:13px 14px;min-height:50px;font-size:17px;width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* banknot kartı */
+.bill{--h:150;position:relative;overflow:hidden;color:#fff;border-radius:18px;padding:16px;display:grid;gap:4px;
+  background:
+    repeating-radial-gradient(circle at 105% -10%,rgba(255,255,255,.09) 0 2px,transparent 2px 10px),
+    linear-gradient(135deg,hsl(var(--h) 55% 36%),hsl(var(--h) 62% 24%));
+  box-shadow:0 8px 20px -10px rgba(0,0,0,.45)}
+.bill-top{display:flex;justify-content:space-between;gap:10px;font-weight:600;font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.bill-top .tag{opacity:.7;font-size:11px}
+.bill-bal{font:800 40px/1.1 var(--font-display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.bill-ser{font:11px var(--font-mono);opacity:.65}
+.delta{position:absolute;right:14px;top:36px;font:800 22px var(--font-display);padding:2px 10px;border-radius:10px;animation:rise 2.4s ease-out forwards;pointer-events:none}
+.delta.p{background:#d7ffe9;color:#0a5a38}
+.delta.n{background:#ffe1dc;color:#8a2417}
+@keyframes rise{0%{transform:translateY(14px);opacity:0}15%{opacity:1}100%{transform:translateY(-22px);opacity:0}}
+.empty{border:2px dashed var(--line);border-radius:18px;min-height:116px;display:grid;place-items:center;text-align:center;padding:16px;color:var(--muted);font-size:14px}
+
+/* transfer sahnesi */
+.stage{position:relative;display:grid;gap:26px;padding:4px 0}
+.bubble{justify-self:center;display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:8px 16px 8px 8px;font-weight:600}
+.bubble b{font:800 20px var(--font-display);font-variant-numeric:tabular-nums}
+.coin,.mcoin{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:800 13px var(--font-display);color:var(--coin-ink);
+  background:radial-gradient(circle at 35% 30%,#ffe27a,var(--coin) 60%,#b07a00);box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.coin{position:absolute;pointer-events:none;z-index:5;opacity:0}
+.pend{border-left:4px solid var(--coin)}
+.msg{font-weight:600;min-height:1.4em}
+
+/* geçmiş */
+.hist{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.hist li{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.hist time{font:12px var(--font-mono);color:var(--muted)}
+.hist .amt-v{font:800 17px var(--font-display);font-variant-numeric:tabular-nums}
+.hist .u{text-decoration:line-through;opacity:.5}
+.hist small{display:block;color:var(--muted)}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+
+/* sekme çubuğu */
+nav{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  padding:8px max(12px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));z-index:20}
+nav div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+nav button{border:0;background:transparent;border-radius:12px;min-height:52px;font-size:13px;font-weight:600;color:var(--muted);display:grid;place-items:center;gap:2px;padding:6px 2px}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button[aria-current="page"]{color:var(--accent);background:var(--surface-2)}
+
+/* NFC bekleme katmanı */
+.tap{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);display:grid;place-items:center;padding:24px}
+.tap-in{max-width:380px;width:100%;display:grid;gap:14px;justify-items:center;text-align:center}
+.tap h2{font-size:26px;font-weight:800}
+.tap p{margin:0;color:var(--muted)}
+.rings{position:relative;width:150px;height:150px;display:grid;place-items:center;color:var(--accent)}
+.rings[data-phase="write"]{color:var(--coin)}
+.rings i{position:absolute;inset:0;border-radius:50%;border:2px solid currentColor;opacity:0;animation:ring 2.2s ease-out infinite}
+.rings i:nth-child(2){animation-delay:.7s}.rings i:nth-child(3){animation-delay:1.4s}
+.rings svg{width:64px;height:64px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;position:relative}
+@keyframes ring{0%{transform:scale(.45);opacity:.9}100%{transform:scale(1.15);opacity:0}}
+.simlist{display:grid;gap:8px;width:100%}
+.simbtn{display:flex;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-weight:600}
+.simbtn span{color:var(--muted);font-variant-numeric:tabular-nums}
+.simbtn.add{border-style:dashed;color:var(--muted)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom,0px));max-width:min(440px,calc(100vw - 32px));z-index:60;
+  background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:14px;font-weight:600;font-size:15px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
+.toast.bad{background:var(--bad);color:var(--bad-ink)}
+@media (prefers-reduced-motion: reduce){
+  .rings i{animation:none;opacity:.35}.delta{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hazine Bankası</h1>
+    <button class="chip-mode" id="modeChip" type="button"><i></i><span id="modeTxt">NFC</span></button>
+  </header>
+  <div class="note" id="note" hidden></div>
+
+  <!-- BANKA -->
+  <section class="panel" id="t-bank">
+    <div class="seg" id="bankSeg">
+      <button class="dep on" data-v="dep" type="button">Yatır</button>
+      <button class="wd" data-v="wd" type="button">Çek</button>
+    </div>
+    <div class="card">
+      <div class="label">Tutar</div>
+      <div class="amt"><span>M</span><input id="amt" inputmode="numeric" pattern="[0-9]*" placeholder="0" autocomplete="off"></div>
+      <div class="chips" id="amtChips">
+        <button class="chip" data-add="10" type="button">+10</button>
+        <button class="chip" data-add="50" type="button">+50</button>
+        <button class="chip" data-add="100" type="button">+100</button>
+        <button class="chip" data-add="200" type="button">+200</button>
+        <button class="chip" data-add="500" type="button">+500</button>
+        <button class="chip ghost" data-clear type="button">Sıfırla</button>
+      </div>
+      <div class="label">Hızlı işlemler</div>
+      <div class="chips">
+        <button class="chip ev" data-ev="dep" data-a="200" type="button">Başlangıçtan geçiş +200</button>
+        <button class="chip ev" data-ev="wd" data-a="200" type="button">Gelir vergisi −200</button>
+        <button class="chip ev" data-ev="wd" data-a="100" type="button">Süper vergi −100</button>
+        <button class="chip ev" data-ev="wd" data-a="50" type="button">Hapis cezası −50</button>
+      </div>
+      <button class="btn dep" id="bankGo" type="button">Kartı okut ve yatır</button>
+    </div>
+    <div id="bankOut"><div class="empty">Son işlem yapılan kart burada görünür.</div></div>
+  </section>
+
+  <!-- TRANSFER -->
+  <section class="panel" id="t-tr" hidden>
+    <div class="card pend" id="pendBox" hidden>
+      <div class="label">Yolda para var</div>
+      <div id="pendText" class="msg"></div>
+      <div class="row2">
+        <button class="btn sm" id="pendGo" type="button">Alan kartı okut</button>
+        <button class="btn sm ghost" id="pendRef" type="button">İade et</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">Gönderilecek tutar</div>
+      <div class="amt"><span>M</span><input id="tAmt" inputmode="numeric" pattern="[0-9]*" placeholder="0" autocomplete="off"></div>
+      <div class="chips" id="tChips">
+        <button class="chip" data-add="10" type="button">+10</button>
+        <button class="chip" data-add="50" type="button">+50</button>
+        <button class="chip" data-add="100" type="button">+100</button>
+        <button class="chip" data-add="200" type="button">+200</button>
+        <button class="chip" data-add="500" type="button">+500</button>
+        <button class="chip ghost" data-clear type="button">Sıfırla</button>
+      </div>
+      <button class="btn" id="txStart" type="button">Gönderen kartı okut</button>
+    </div>
+    <div class="stage" id="stage">
+      <div id="slotA"><div class="empty">Gönderen kart</div></div>
+      <div class="bubble" id="bubble"><span class="mcoin">M</span><span>Yolda</span><b id="bubbleAmt">M 0</b></div>
+      <div id="slotB"><div class="empty">Alan kart</div></div>
+    </div>
+    <div class="msg" id="txMsg" aria-live="polite"></div>
+  </section>
+
+  <!-- KARTLAR -->
+  <section class="panel" id="t-cards" hidden>
+    <div class="card">
+      <h2>Kart sorgula</h2>
+      <button class="btn ghost" id="chkBtn" type="button">Kartı okut</button>
+      <div id="chkOut"></div>
+    </div>
+    <div class="card">
+      <h2>Kart hazırla veya düzelt</h2>
+      <div class="field"><label class="label" for="cName">Oyuncu adı</label><input id="cName" maxlength="20" autocomplete="off" placeholder="Örn. Ayşe"></div>
+      <div class="field"><label class="label" for="cBal">Bakiye</label><input id="cBal" inputmode="numeric" pattern="[0-9]*" value="1500" autocomplete="off"></div>
+      <button class="btn" id="wrBtn" type="button">Kartı okut ve yaz</button>
+      <p class="label" style="text-transform:none;letter-spacing:0;font-weight:400">Karta şu metin kaydı yazılır: <code>MP|Ad|Bakiye</code>. NFC Tools ile aynı biçimde elle de yazabilirsin.</p>
+    </div>
+    <button class="btn ghost sm" id="simReset" type="button" hidden>Demo kartlarını sıfırla</button>
+  </section>
+
+  <!-- GEÇMİŞ -->
+  <section class="panel" id="t-hist" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>İşlem geçmişi</h2><button class="chip ghost" id="histClear" type="button">Temizle</button></div>
+    <ul class="hist" id="histList"></ul>
+    <button class="btn ghost" id="undoBtn" type="button" hidden>Son işlemi geri al</button>
+  </section>
+</div>
+
+<nav aria-label="Bölümler"><div>
+  <button data-t="bank" type="button" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>Banka</button>
+  <button data-t="tr" type="button"><svg viewBox="0 0 24 24"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>Transfer</button>
+  <button data-t="cards" type="button"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10.5h18"/></svg>Kartlar</button>
+  <button data-t="hist" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Geçmiş</button>
+</div></nav>
+
+<div class="tap" id="tap" hidden role="dialog" aria-modal="true" aria-labelledby="tapTitle">
+  <div class="tap-in">
+    <div class="rings" data-phase="scan"><i></i><i></i><i></i>
+      <svg viewBox="0 0 24 24"><path d="M8 8.5a5 5 0 0 1 0 7M11.5 6a8.5 8.5 0 0 1 0 12M15 3.5a12 12 0 0 1 0 17"/></svg>
+    </div>
+    <h2 id="tapTitle"></h2>
+    <p id="tapHint"></p>
+    <div class="simlist" id="simList" hidden></div>
+    <button class="btn ghost sm" id="tapCancel" type="button">Vazgeç</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(()=>{
+'use strict';
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmt=n=>'M '+Number(n).toLocaleString('tr-TR');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hueOf=s=>{let h=0;for(const c of String(s||'?'))h=(h*31+c.charCodeAt(0))%360;return h};
+const shortSer=s=>s?String(s).slice(-11):'—';
+class UserErr extends Error{}
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+
+const hasNFC='NDEFReader' in window;
+const defaultSim=()=>[{serial:'S-1',name:'Ali',balance:1500},{serial:'S-2',name:'Ayşe',balance:1500},{serial:'S-3',name:'Mehmet',balance:1500},{serial:'S-4',name:'Zeynep',balance:1500}];
+let mode=hasNFC?store.get('mp_mode','nfc'):'sim';
+let sim=store.get('mp_sim',null)||defaultSim();
+let log=store.get('mp_log',[]);
+let pending=store.get('mp_pending',null);
+let bankType='dep';
+let busy=false;
+
+/* ---------- arayüz yardımcıları ---------- */
+let toastT;
+function toast(msg,kind){const t=$('#toast');t.textContent=msg;t.className='toast'+(kind==='bad'?' bad':'');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,kind==='bad'?4500:2200)}
+function go(name){
+  $$('section.panel').forEach(s=>s.hidden=s.id!=='t-'+name);
+  $$('nav button').forEach(b=>{if(b.dataset.t===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  if(name==='hist')renderHist();
+  scrollTo({top:0});
+}
+$$('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+
+function updateUI(){
+  const nfc=mode==='nfc';
+  $('#modeTxt').textContent=nfc?'NFC hazır':'Demo modu';
+  $('#modeChip').classList.toggle('on',nfc);
+  $('#simReset').hidden=nfc;
+  $('#pendBox').hidden=!pending;
+  if(pending)$('#pendText').textContent=`${pending.from.name} kartından ${fmt(pending.amount)} çekildi. Alan kart bekleniyor.`;
+  $('#txStart').disabled=!!pending;
+  const dep=bankType==='dep';
+  $('#bankGo').className='btn '+bankType;
+  $('#bankGo').textContent=dep?'Kartı okut ve yatır':'Kartı okut ve çek';
+  $$('#bankSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===bankType));
+}
+$('#modeChip').onclick=()=>{
+  if(!hasNFC){toast('Bu tarayıcıda NFC yok. Android Chrome ve https bağlantı gerekir.','bad');return}
+  mode=mode==='nfc'?'sim':'nfc';store.set('mp_mode',mode);updateUI();
+};
+if(!hasNFC){
+  const n=$('#note');n.hidden=false;
+  n.textContent='Bu sayfada NFC kullanılamıyor (Android Chrome ve https bağlantı gerekir). Demo modundasın, kartlar telefonda sanal olarak tutulur.';
+}
+
+/* ---------- para girişi ---------- */
+const amtOf=id=>Math.max(0,parseInt(String($('#'+id).value).replace(/\D/g,''),10)||0);
+function setupAmount(inputId,chipsId){
+  const inp=$('#'+inputId);
+  inp.addEventListener('input',()=>{inp.value=inp.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'')});
+  $('#'+chipsId).addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.clear!==undefined)inp.value='';
+    else if(b.dataset.add)inp.value=String(amtOf(inputId)+(+b.dataset.add));
+  });
+}
+setupAmount('amt','amtChips');setupAmount('tAmt','tChips');
+$$('#bankSeg button').forEach(b=>b.onclick=()=>{bankType=b.dataset.v;updateUI()});
+$$('[data-ev]').forEach(b=>b.onclick=()=>{bankType=b.dataset.ev;$('#amt').value=b.dataset.a;updateUI()});
+
+/* ---------- NFC katmanı ---------- */
+let scanAc=null,wrAc=null,simReject=null;
+function showTap(title,hint,phase='scan',list=false){
+  $('#tapTitle').textContent=title;$('#tapHint').textContent=hint||'';
+  $('.rings').dataset.phase=phase;$('#simList').hidden=!list;$('#tap').hidden=false;
+}
+function hideTap(){$('#tap').hidden=true;$('#simList').hidden=true}
+$('#tapCancel').onclick=()=>{
+  scanAc&&scanAc.abort();wrAc&&wrAc.abort();
+  if(simReject){const r=simReject;simReject=null;r(new DOMException('İptal','AbortError'))}
+};
+
+function parseText(t){
+  const p=String(t).split('|');
+  if(p[0]!=='MP'||p.length<3)return null;
+  const b=parseInt(p[2],10);
+  if(!Number.isFinite(b)||b<0)return null;
+  return {name:p[1].trim()||'Oyuncu',balance:b};
+}
+function parseEvent(e){
+  for(const r of e.message.records){
+    if(r.recordType==='text'){
+      let t='';try{t=new TextDecoder(r.encoding||'utf-8').decode(r.data)}catch{}
+      const p=parseText(t);
+      if(p)return {serial:e.serialNumber||'',...p};
+    }
+  }
+  return {serial:e.serialNumber||'',name:null,balance:null,blank:true};
+}
+const sameCard=(c,ref)=>(c.serial&&ref.serial)?c.serial===ref.serial:c.name===ref.name;
+function needReady(c){if(c.blank||c.name==null)throw new UserErr('Bu kart hazırlanmamış. Kartlar sekmesinden ad ve bakiye yaz.')}
+
+function simPick(title,hint){
+  return new Promise((res,rej)=>{
+    showTap(title,(hint?hint+' ':'')+'Demo modu: bir kart seç.','scan',true);
+    const L=$('#simList');
+    L.innerHTML=sim.map((c,i)=>`<button class="simbtn" data-i="${i}" type="button">${esc(c.name||'Boş kart')}<span>${c.name?fmt(c.balance):''}</span></button>`).join('')+'<button class="simbtn add" data-i="new" type="button">+ Boş kart</button>';
+    simReject=rej;
+    L.onclick=e=>{
+      const b=e.target.closest('button');if(!b)return;
+      let c;
+      if(b.dataset.i==='new'){c={serial:'S-'+Date.now().toString(36),name:null,balance:null};sim.push(c);store.set('mp_sim',sim)}
+      else c=sim[+b.dataset.i];
+      simReject=null;L.hidden=true;
+      res(c.name?{serial:c.serial,name:c.name,balance:c.balance}:{serial:c.serial,name:null,balance:null,blank:true});
+    };
+  });
+}
+function simSave(serial,name,bal){
+  const c=sim.find(x=>x.serial===serial);
+  if(c){c.name=name;c.balance=bal}else sim.push({serial,name,balance:bal});
+  store.set('mp_sim',sim);
+}
+function readOnce(title,hint){
+  if(mode==='sim')return simPick(title,hint);
+  showTap(title,hint,'scan');
+  const ac=scanAc=new AbortController();
+  const p=new Promise((res,rej)=>{
+    ac.signal.addEventListener('abort',()=>rej(new DOMException('İptal','AbortError')));
+    (async()=>{
+      try{
+        const r=new NDEFReader();
+        r.onreading=e=>res(parseEvent(e));
+        r.onreadingerror=()=>rej(new UserErr('Kart okunamadı. Kartı sabit tut ve tekrar dene.'));
+        await r.scan({signal:ac.signal});
+      }catch(err){rej(err)}
+    })();
+  });
+  return p.finally(()=>{try{ac.abort()}catch{}});
+}
+async function readCard(title,hint,accept){
+  for(;;){
+    const c=await readOnce(title,hint);
+    if(!accept||accept(c))return c;
+    hint=accept.hint||hint;
+  }
+}
+async function writeCard(c,name,bal,title='Kaydediliyor…'){
+  showTap(title,'Kartı telefonun arkasında tut, çekme.','write');
+  if(mode==='sim'){await sleep(700);simSave(c.serial,name,bal);return}
+  const ac=wrAc=new AbortController();
+  const text=`MP|${String(name).replace(/\|/g,'/').slice(0,24)}|${bal}`;
+  await new NDEFReader().write({records:[{recordType:'text',data:text}]},{overwrite:true,signal:ac.signal});
+}
+
+async function run(fn){
+  if(busy)return;busy=true;
+  try{await fn()}
+  catch(e){
+    hideTap();
+    if(e&&e.name==='AbortError')toast('İptal edildi');
+    else if(e instanceof UserErr)toast(e.message,'bad');
+    else if(e&&e.name==='NotAllowedError')toast('NFC izni verilmedi. Tarayıcı izinlerini kontrol et.','bad');
+    else if(e&&e.name==='NotSupportedError')toast('Bu cihaz veya kart NFC yazmayı desteklemiyor.','bad');
+    else{console.error(e);toast((e&&e.message)||'Bir şey ters gitti, tekrar dene.','bad')}
+  }finally{busy=false;updateUI()}
+}
+
+/* ---------- görsel parçalar ---------- */
+function mount(el,c,bal,tag){
+  el.innerHTML=`<div class="bill" style="--h:${hueOf(c.name)}"><div class="bill-top"><span>${esc(c.name)}</span><span class="tag">${esc(tag||'')}</span></div><div class="bill-bal">${fmt(bal)}</div><div class="bill-ser">${esc(shortSer(c.serial))}</div></div>`;
+  return $('.bill-bal',el);
+}
+function tween(el,from,to,ms){
+  return new Promise(res=>{
+    if(RM||ms<=0){el.textContent=fmt(to);return res()}
+    const t0=performance.now();
+    const step=t=>{
+      const k=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-k,3);
+      el.textContent=fmt(Math.round(from+(to-from)*e));
+      k<1?requestAnimationFrame(step):res();
+    };
+    requestAnimationFrame(step);
+  });
+}
+const coinCount=a=>RM?0:Math.min(16,Math.max(5,Math.round(a/50)));
+function fly(fromEl,toEl,count,total){
+  if(!count||!fromEl||!toEl)return Promise.resolve();
+  const st=$('#stage'),sr=st.getBoundingClientRect(),a=fromEl.getBoundingClientRect(),b=toEl.getBoundingClientRect();
+  const ax=a.left+a.width/2-sr.left-14,ay=a.top+a.height/2-sr.top-14;
+  const dx=(b.left+b.width/2-sr.left-14)-ax,dy=(b.top+b.height/2-sr.top-14)-ay;
+  const per=Math.max(600,total*.5),gap=count>1?(total-per)/(count-1):0;
+  const jobs=[];
+  for(let i=0;i<count;i++){
+    const c=document.createElement('div');c.className='coin';c.textContent='M';
+    c.style.left=ax+'px';c.style.top=ay+'px';st.appendChild(c);
+    const sway=(i%2?1:-1)*(16+(i*9)%34);
+    const an=c.animate([
+      {transform:'translate(0,0) scale(.6)',opacity:0},
+      {transform:`translate(${dx*.2+sway}px,${dy*.2}px) scale(1)`,opacity:1,offset:.15},
+      {transform:`translate(${dx*.8-sway}px,${dy*.8}px) scale(1)`,opacity:1,offset:.85},
+      {transform:`translate(${dx}px,${dy}px) scale(.6)`,opacity:0}
+    ],{duration:per,delay:i*gap,easing:'ease-in-out',fill:'both'});
+    jobs.push(an.finished.then(()=>c.remove(),()=>c.remove()));
+  }
+  return Promise.all(jobs);
+}
+function floatDelta(box,delta){
+  const d=document.createElement('div');
+  d.className='delta '+(delta>=0?'p':'n');
+  d.textContent=(delta>=0?'+':'−')+fmt(Math.abs(delta)).replace('M ','M ');
+  $('.bill',box).appendChild(d);
+}
+
+/* ---------- geçmiş ---------- */
+function addLog(e){
+  log.unshift({id:Date.now(),t:Date.now(),undone:false,ops:[],...e});
+  log=log.slice(0,80);store.set('mp_log',log);
+}
+const TYPE_TXT={dep:'Yatırma',wd:'Çekme',tr:'Transfer',refund:'İade',issue:'Kart yazıldı',undo:'Geri alma'};
+function renderHist(){
+  const ul=$('#histList');
+  if(!log.length){ul.innerHTML='<li style="grid-template-columns:1fr;color:var(--muted)">Henüz işlem yok.</li>';$('#undoBtn').hidden=true;return}
+  ul.innerHTML=log.map(e=>{
+    const tm=new Date(e.t).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    const sign=e.type==='dep'?'+':e.type==='wd'?'−':'';
+    const cls=e.type==='dep'?'pos':e.type==='wd'?'neg':'';
+    const amtTxt=e.amount!=null?`${sign}${fmt(e.amount)}`:'';
+    return `<li><time>${tm}</time><div class="${e.undone?'u':''}">${esc(e.text)}<small>${TYPE_TXT[e.type]||''}${e.undone?' · geri alındı':''}</small></div><span class="amt-v ${cls}">${amtTxt}</span></li>`;
+  }).join('');
+  const last=log[0];
+  $('#undoBtn').hidden=!(last&&last.ops&&last.ops.length&&!last.undone);
+}
+let clearArm=0;
+$('#histClear').onclick=()=>{
+  if(!clearArm){clearArm=setTimeout(()=>{clearArm=0;$('#histClear').textContent='Temizle'},3000);$('#histClear').textContent='Emin misin? Tekrar dokun';return}
+  clearTimeout(clearArm);clearArm=0;$('#histClear').textContent='Temizle';log=[];store.set('mp_log',log);renderHist();
+};
+$('#undoBtn').onclick=()=>run(async()=>{
+  const e=log[0];if(!e||!e.ops.length||e.undone)return;
+  const rev=e.ops.map(o=>({...o,delta:-o.delta})).sort((x,y)=>x.delta-y.delta);
+  for(const op of rev){
+    const c=await readCard(`Kartı yaklaştır: ${op.name}`,'Geri alınacak işlem için bu kart gerekli.',
+      Object.assign(x=>sameCard(x,op),{hint:`Bu başka kart. ${op.name} kartı gerekli.`}));
+    needReady(c);
+    const nb=c.balance+op.delta;
+    if(nb<0)throw new UserErr(`${c.name} kartında yeterli bakiye yok (${fmt(c.balance)}).`);
+    await writeCard(c,c.name,nb,'Geri alınıyor…');
+  }
+  hideTap();e.undone=true;store.set('mp_log',log);
+  addLog({type:'undo',text:`Geri alındı: ${e.text}`,amount:e.amount});
+  renderHist();toast('İşlem geri alındı');
+});
+
+/* ---------- banka: yatır / çek ---------- */
+$('#bankGo').onclick=()=>run(async()=>{
+  const a=amtOf('amt');
+  if(!a)throw new UserErr('Önce bir tutar gir.');
+  const dep=bankType==='dep';
+  const c=await readCard('Kartı yaklaştır',`${dep?'Yatırılacak':'Çekilecek'} tutar: ${fmt(a)}`);
+  needReady(c);
+  const delta=dep?a:-a,nb=c.balance+delta;
+  if(nb<0)throw new UserErr(`Yetersiz bakiye. ${c.name} kartında ${fmt(c.balance)} var.`);
+  await writeCard(c,c.name,nb);
+  hideTap();
+  addLog({type:bankType,text:c.name,amount:a,ops:[{serial:c.serial,name:c.name,delta}]});
+  const box=$('#bankOut'),el=mount(box,c,c.balance,dep?'Yatırıldı':'Çekildi');
+  floatDelta(box,delta);
+  $('#amt').value='';
+  await tween(el,c.balance,nb,1200);
+});
+
+/* ---------- transfer ---------- */
+function resetStage(){
+  $('#slotA').innerHTML='<div class="empty">Gönderen kart</div>';
+  $('#slotB').innerHTML='<div class="empty">Alan kart</div>';
+  $('#bubbleAmt').textContent=fmt(0);
+}
+async function animOut(a,after,amt){
+  const slot=$('#slotA'),el=mount(slot,a,a.balance,'Gönderen');
+  $('#slotB').innerHTML='<div class="empty">Alan kart bekleniyor</div>';
+  const T=RM?0:1400;
+  await Promise.all([tween(el,a.balance,after,T),tween($('#bubbleAmt'),0,amt,T),fly(slot.firstElementChild,$('#bubble'),coinCount(amt),T)]);
+}
+async function animIn(b,after,amt){
+  const slot=$('#slotB'),el=mount(slot,b,b.balance,'Alan');
+  const T=RM?0:2800;
+  await Promise.all([tween(el,b.balance,after,T),tween($('#bubbleAmt'),amt,0,T),fly($('#bubble'),slot.firstElementChild,coinCount(amt),T)]);
+}
+async function finishTransfer(){
+  const p=pending;
+  const b=await readCard('Alan kartı yaklaştır',`${fmt(p.amount)} yolda. Parayı alacak kartı okut.`,
+    Object.assign(c=>!sameCard(c,p.from),{hint:'Bu gönderen kart. Alan kartı yaklaştır.'}));
+  needReady(b);
+  const after=b.balance+p.amount;
+  await writeCard(b,b.name,after,'Para yatırılıyor…');
+  hideTap();
+  await animIn(b,after,p.amount);
+  addLog({type:'tr',text:`${p.from.name} → ${b.name}`,amount:p.amount,ops:[{serial:p.from.serial,name:p.from.name,delta:-p.amount},{serial:b.serial,name:b.name,delta:p.amount}]});
+  pending=null;store.set('mp_pending',null);
+  $('#txMsg').textContent=`${p.from.name} → ${b.name}: ${fmt(p.amount)} gönderildi.`;
+  $('#tAmt').value='';
+}
+$('#txStart').onclick=()=>run(async()=>{
+  const amt=amtOf('tAmt');
+  if(!amt)throw new UserErr('Önce gönderilecek tutarı gir.');
+  $('#txMsg').textContent='';resetStage();
+  const a=await readCard('Gönderen kartı yaklaştır',`Gönderilecek tutar: ${fmt(amt)}`);
+  needReady(a);
+  if(a.balance<amt)throw new UserErr(`Yetersiz bakiye. ${a.name} kartında ${fmt(a.balance)} var.`);
+  const after=a.balance-amt;
+  await writeCard(a,a.name,after,'Para çekiliyor…');
+  hideTap();
+  pending={from:{serial:a.serial,name:a.name},amount:amt};store.set('mp_pending',pending);
+  updateUI();
+  await animOut(a,after,amt);
+  try{await finishTransfer()}
+  catch(e){
+    if(pending)toast('Para yolda kaldı. Devam et veya iade et.','bad');
+    throw e;
+  }
+});
+$('#pendGo').onclick=()=>run(async()=>{await finishTransfer()});
+$('#pendRef').onclick=()=>run(async()=>{
+  const p=pending;if(!p)return;
+  const c=await readCard('Gönderen kartı yaklaştır',`${fmt(p.amount)} ${p.from.name} kartına iade edilecek.`,
+    Object.assign(x=>sameCard(x,p.from),{hint:`Bu başka kart. ${p.from.name} kartı gerekli.`}));
+  needReady(c);
+  await writeCard(c,c.name,c.balance+p.amount,'İade ediliyor…');
+  hideTap();
+  addLog({type:'refund',text:`${p.from.name} kartına iade`,amount:p.amount});
+  pending=null;store.set('mp_pending',null);resetStage();
+  $('#txMsg').textContent='Para iade edildi.';
+});
+
+/* ---------- kartlar ---------- */
+$('#chkBtn').onclick=()=>run(async()=>{
+  const c=await readCard('Kartı yaklaştır','Bakiye okunacak.');
+  hideTap();
+  if(c.blank||c.name==null){$('#chkOut').innerHTML='<div class="empty">Bu kart henüz hazırlanmamış.</div>';return}
+  mount($('#chkOut'),c,c.balance,'Okundu');
+});
+$('#cBal').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'')});
+$('#wrBtn').onclick=()=>run(async()=>{
+  const name=$('#cName').value.trim();
+  const bal=parseInt($('#cBal').value,10);
+  if(!name)throw new UserErr('Oyuncu adını yaz.');
+  if(!Number.isFinite(bal))throw new UserErr('Bakiyeyi yaz.');
+  const c=await readCard('Kartı yaklaştır',`${name} için ${fmt(bal)} yazılacak. Kartın üzerine yazılır.`);
+  await writeCard(c,name,bal,'Karta yazılıyor…');
+  hideTap();
+  addLog({type:'issue',text:`${name} kartı`,amount:bal});
+  mount($('#chkOut'),{serial:c.serial,name},bal,'Yazıldı');
+  toast('Kart hazır');
+});
+$('#simReset').onclick=()=>{sim=defaultSim();store.set('mp_sim',sim);toast('Demo kartları sıfırlandı')};
+
+updateUI();go('bank');
+})();
+</script>
+</body>
+</html>
